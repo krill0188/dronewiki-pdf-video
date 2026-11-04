@@ -1,0 +1,7 @@
+import fs from 'node:fs'
+import path from 'node:path'
+function loadEnv(file:string){if(!fs.existsSync(file))return;for(const line of fs.readFileSync(file,'utf8').split(/\r?\n/)){const m=line.match(/^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*)\s*$/);if(!m||m[2].startsWith('«redacted:'))continue;let v=m[2];if((v.startsWith('"')&&v.endsWith('"'))||(v.startsWith("'")&&v.endsWith("'")))v=v.slice(1,-1);if(!process.env[m[1]])process.env[m[1]]=v}}
+loadEnv('/Users/amaster/projectm/video-saas/.env.local');loadEnv('/Users/amaster/projectm/video-saas/.env.local.bak')
+const root='/Users/amaster/projectm/dronewiki-pdf-video/audio'
+async function main(){const {generateElevenLabsNarration}=await import('/Users/amaster/projectm/video-saas/lib/pipeline/elevenlabs-tts.ts');for(const file of fs.readdirSync(root).filter(x=>/^page-\d{2}\.json$/.test(x)).sort()){const json=path.join(root,file);const mp3=json.replace('.json','.mp3');if(fs.statSync(json).mtimeMs<=fs.statSync(mp3).mtimeMs)continue;const data=JSON.parse(fs.readFileSync(json,'utf8'));const tempName=`regen-${path.basename(mp3)}`;const result=await generateElevenLabsNarration(data.text,root,{filename:tempName,language:'ko',speed:1.1});fs.renameSync(result.audioPath,mp3);data.audioPath=mp3;data.durationSeconds=result.durationSeconds;fs.writeFileSync(json,JSON.stringify(data,null,2)+'\n');console.log(JSON.stringify({page:data.page,durationSeconds:result.durationSeconds}))}}
+main().catch(e=>{console.error(e);process.exit(1)})
